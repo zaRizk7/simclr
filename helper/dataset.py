@@ -14,7 +14,7 @@ DEFAULT_TRANSFORM = T.Compose(
         T.RandomVerticalFlip(),
         T.RandomHorizontalFlip(),
         T.RandAugment(),
-        T.GaussianBlur((224 // 10 + 1, 224 // 10 + 1)),
+        T.RandomApply([T.GaussianBlur((224 // 10 - 1, 224 // 10 - 1))]),
         T.ToTensor(),
     ]
 )
