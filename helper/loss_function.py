@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-__all__ = ["SimCLRLoss"]
+__all__ = ["NTXentLoss"]
 
 
 class NTXentLoss(torch.nn.Module):
@@ -41,16 +41,14 @@ def nt_xent_loss(outputs_1, outputs_2, tau=0.1):
     loss = similarities / tau
     loss = loss.exp()
 
-    i = torch.arange(loss.size(0)) % 2 == 0
+    i = torch.arange(batch_size) % 2 == 0
     j = ~i
 
-    masks_1 = torch.zeros([batch_size] * 2).bool()
+    
+    masks_1 = torch.zeros_like(loss).bool()
     masks_1[i, j] = 1
     masks_1[j, i] = 1
-    masks_1 = masks_1.to(loss.device)
-    
-    masks_2 = torch.eye(batch_size).bool()
-    masks_2 = ~masks_2.to(loss.device)
+    masks_2 = ~torch.eye(batch_size, device=masks_1.device).bool()
 
     loss = (loss * masks_2).sum(-1).log() - (loss * masks_1).sum(-1).log()
 
