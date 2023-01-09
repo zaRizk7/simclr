@@ -21,12 +21,11 @@ class NTXentLoss(torch.nn.Module):
 
 
 def _pairwise_similarity(outputs_1, outputs_2):
-    size = outputs_1.size()
-    projection_size = size[-1]
+    batch_size = outputs_1.size(0)
 
     outputs = torch.stack((outputs_1, outputs_2), 1)
-    outputs = outputs.view(-1, projection_size)
-    norms = outputs.norm(p=2, dim=tuple(range(1, len(size))))
+    outputs = outputs.view(2 * batch_size, -1)
+    norms = outputs.norm(p=2, dim=-1)
 
     similarities = outputs @ outputs.t()
     similarities = similarities / torch.outer(norms, norms)
