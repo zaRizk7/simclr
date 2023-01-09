@@ -43,7 +43,6 @@ def nt_xent_loss(outputs_1, outputs_2, tau=0.1):
     i = torch.arange(batch_size) % 2 == 0
     j = ~i
 
-    
     masks_1 = torch.zeros_like(loss).bool()
     masks_1[i, j] = 1
     masks_1[j, i] = 1
