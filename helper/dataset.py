@@ -4,12 +4,18 @@ import torchvision.transforms as T
 from PIL import Image
 from torchvision.datasets import DatasetFolder
 
-__all__ = ['SimCLRDataset']
+__all__ = ["SimCLRDataset"]
 
 SUPPORTED_EXTENSION = ["png", "jpg", "jpeg"]
 
 DEFAULT_TRANSFORM = T.Compose(
-    [T.RandAugment(), T.RandomResizedCrop((224, 224)), T.ToTensor()]
+    [
+        T.RandAugment(),
+        T.RandomResizedCrop((224, 224)),
+        T.RandomVerticalFlip(),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+    ]
 )
 
 
