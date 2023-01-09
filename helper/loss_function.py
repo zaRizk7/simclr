@@ -4,7 +4,7 @@ import torch.nn.functional as F
 __all__ = ["SimCLRLoss"]
 
 
-class SimCLRLoss(torch.nn.Module):
+class NTXentLoss(torch.nn.Module):
     def __init__(self, tau=0.1, reduction="mean"):
         self.tau = tau
         self.reduction = reduction
