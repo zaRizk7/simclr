@@ -11,65 +11,47 @@ class SimCLRLoss(torch.nn.Module):
         super().__init__()
 
     def forward(self, outputs_1, outputs_2):
-        sim = _pairwise_similarity(outputs_1, outputs_2)
-        sim = sim / self.tau
-        sim = sim.exp()
+        loss = nt_xent_loss(outputs_1, outputs_2, self.tau)
 
-        loss = 0
-        batch_size = sim.size(0)
-        mask = torch.arange(batch_size).to(sim.device)
-        for i in range(0, batch_size, 2):
-            j = i + 1
-
-            m1 = mask != i
-            m2 = mask != j
-            a, b = sim[i], sim[j]
-
-            loss = (
-                loss
-                + a[m1].sum().log()
-                - a[j].log()
-                + b[m2].sum().log()
-                - b[i].sum().log()
-            )
-
-        return loss / batch_size
-
-
-def _mask(outputs):
-    batch_size = outputs.size(0)
-    return ~torch.eye(batch_size).bool().to(outputs.device)
-
-
-def _norm(outputs):
-    return outputs.norm(p=2, dim=-1)
+        if self.reduction == "mean":
+            return loss.mean()
+        elif self.reduction == "sum":
+            return loss.sum()
+        return loss
 
 
 def _pairwise_similarity(outputs_1, outputs_2):
-    batch_size = outputs_1.size(0)
-    outputs = torch.cat((outputs_1.unsqueeze(1), outputs_2.unsqueeze(1)), dim=1)
-    outputs = outputs.view(2 * batch_size, -1)
+    size = outputs_1.size()
+    projection_size = size[-1]
 
-    norm = _norm(outputs)
-    sim = outputs @ outputs.t()
-    sim = sim / torch.outer(norm, norm)
+    outputs = torch.stack((outputs_1, outputs_2), 1)
+    outputs = outputs.view(-1, projection_size)
+    norms = outputs.norm(p=2, dim=tuple(range(1, len(size))))
 
-    return sim
+    similarities = outputs @ outputs.t()
+    similarities = similarities / torch.outer(norms, norms)
+
+    return similarities
 
 
 def nt_xent_loss(outputs_1, outputs_2, tau=0.1):
-    batch_size = outputs_1.size(0)
-    outputs = torch.cat((outputs_1.unsqueeze(1), outputs_2.unsqueeze(1)), dim=1)
-    outputs = outputs.view(2 * batch_size, -1)
+    similarities = _pairwise_similarity(outputs_1, outputs_2)
 
-    norm = _norm(outputs)
-    sim = outputs @ outputs.t()
-    sim = sim / torch.outer(norm, norm)
-
-    loss = sim / tau
+    batch_size = similarities.size(0)
+    loss = similarities / tau
     loss = loss.exp()
 
-    mask = _mask(loss)
-    loss = (loss * mask).sum(-1).log() - loss.diag().log()
+    i = torch.arange(loss.size(0)) % 2 == 0
+    j = ~i
+
+    masks_1 = torch.zeros([batch_size] * 2).bool()
+    masks_1[i, j] = 1
+    masks_1[j, i] = 1
+    masks_1 = masks_1.to(loss.device)
+    
+    masks_2 = torch.eye(batch_size).bool()
+    masks_2 = ~masks_2.to(loss.device)
+
+    loss = (loss * masks_2).sum(-1).log() - (loss * masks_1).sum(-1).log()
 
     return loss
