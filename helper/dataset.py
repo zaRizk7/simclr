@@ -10,10 +10,11 @@ SUPPORTED_EXTENSION = ["png", "jpg", "jpeg"]
 
 DEFAULT_TRANSFORM = T.Compose(
     [
-        T.RandAugment(),
         T.RandomResizedCrop((224, 224)),
         T.RandomVerticalFlip(),
         T.RandomHorizontalFlip(),
+        T.RandAugment(),
+        T.GaussianBlur((224 // 10, 224 // 10)),
         T.ToTensor(),
     ]
 )
